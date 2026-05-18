@@ -3,8 +3,9 @@
 #include "commands/init_command.hpp"
 #include "commands/cat_file_command.hpp"
 #include "commands/write_tree_command.hpp"
-#include "commands/read_tree_command.hpp"  // NEW
-#include "commands/commit_command.hpp"     // NEW
+#include "commands/read_tree_command.hpp"
+#include "commands/commit_command.hpp"
+#include "commands/log_command.hpp" // NEW
 
 #include <memory>
 #include <vector>
@@ -19,10 +20,9 @@ int main(int argc, char **argv) {
     commands.push_back(std::make_unique<InitCommand>());
     commands.push_back(std::make_unique<CatFileCommand>());
     commands.push_back(std::make_unique<WriteTreeCommand>());
-    
-    // Register the new commands
     commands.push_back(std::make_unique<ReadTreeCommand>());
     commands.push_back(std::make_unique<CommitCommand>());
+    commands.push_back(std::make_unique<LogCommand>()); // NEW
 
     for (auto &cmd : commands) {
         cmd->setup(app);

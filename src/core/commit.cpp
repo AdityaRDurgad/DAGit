@@ -2,12 +2,38 @@
 #include "core/repository.hpp"
 #include "core/tree.hpp"
 #include "core/object_store.hpp"
-
+#include <filesystem>
+#include <fstream>
 #include <sstream>
 #include <deque>
 #include <stdexcept>
-
+namespace fs = std::filesystem;
 namespace core {
+
+std::string Commit::get_head() {
+    auto repo_root = Repository::find_repo_root();
+    if (!repo_root) return "";
+
+    fs::path head_path = *repo_root / ".dagit" / "HEAD";
+    if (!fs::exists(head_path)) return "";
+
+    std::ifstream in(head_path);
+    std::string oid;
+    in >> oid; // >> operator safely extracts the string and ignores trailing newlines
+    
+    return oid;
+}
+
+void Commit::set_head(const std::string& oid) {
+    auto repo_root = Repository::find_repo_root();
+    if (!repo_root) throw std::runtime_error("Fatal: Not a dagit repository.");
+
+    fs::path head_path = *repo_root / ".dagit" / "HEAD";
+    std::ofstream out(head_path);
+    out << oid << "\n";
+}
+
+// --- UPDATED COMMIT CREATION ---
 
 std::string Commit::create_commit(const std::string& message) {
     auto repo_root = Repository::find_repo_root();
@@ -16,12 +42,23 @@ std::string Commit::create_commit(const std::string& message) {
     // 1. Snapshot the working directory
     std::string tree_oid = Tree::write_tree(*repo_root);
 
-    // 2. Construct commit content (simplistic approach for now)
+    // 2. Fetch current HEAD to act as parent
+    std::string parent_oid = get_head();
+
+    // 3. Construct commit content with parent linkage
     std::string commit_data = "tree " + tree_oid + "\n";
+    if (!parent_oid.empty()) {
+        commit_data += "parent " + parent_oid + "\n";
+    }
     commit_data += "\n" + message + "\n";
 
-    // 3. Hash and store
-    return ObjectStore::hash_object("commit", commit_data);
+    // 4. Hash and store the commit object
+    std::string new_commit_oid = ObjectStore::hash_object("commit", commit_data);
+
+    // 5. Update HEAD to point to this new commit
+    set_head(new_commit_oid);
+
+    return new_commit_oid;
 }
 
 CommitObject Commit::get_commit(const std::string& oid) {

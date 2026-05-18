@@ -18,6 +18,10 @@ public:
     static std::string create_commit(const std::string& message);
     static CommitObject get_commit(const std::string& oid);
     static std::unordered_set<std::string> iter_commits_and_parents(const std::set<std::string>& oids);
+    
+    // NEW: HEAD Management
+    static std::string get_head();
+    static void set_head(const std::string& oid);
 };
 
 } // namespace core
